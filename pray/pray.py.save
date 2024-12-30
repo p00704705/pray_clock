@@ -1,0 +1,114 @@
+import sys
+import time
+import random
+import socket
+from datetime import datetime
+from PyQt5.QtWidgets import QApplication, QLabel, QVBoxLayout, QWidget
+from PyQt5.QtCore import QTimer, Qt
+from PyQt5.QtGui import QFont
+from playsound import playsound
+import threading
+
+import fcntl
+import struct
+# List of messages
+messages = [
+    "Time for prayer and reflection.",
+    "Pause, breathe, and pray.",
+    "Take a moment for spiritual rejuvenation.",
+    "It's time to pray and connect with peace.",
+    # Add more messages as desired
+]
+def get_device_ip(interface="eth0"):
+    """Get the IP dress of the specific network interface."""
+    try:
+        sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        ip_address = fcntl.ioctl(
+            sock.fileno(),
+            0x8915,  # SIOCGIFADDR
+            struct.pack('256s', interface[:15].encode('utf-8'))
+        )[20:24]
+        return socket.inet_ntoa(ip_address)
+    except Exception as e:
+        return f"IP: Not available ({str(e)})"
+# Path to the sound file
+sound_file_path = "/path/to/your/sound/file.mp3"  # Update this path
+
+# Prayer times in 24-hour format
+prayer_times = ["09:00", "12:00", "15:00", "18:00", "21:00"]
+class PrayerReminder(QWidget):
+    def __init__(self):
+        super().__init__()
+        self.initUI()
+        self.current_message = random.choice(messages)
+        self.device_ip = get_device_ip()
+        self.next_prayer_time = self.get_next_prayer_time()
+        self.update_message()
+
+    def initUI(self):
+        self.setWindowTitle('Prayer Reminder')
+        self.showFullScreen()
+        self.setStyleSheet("background-color: black;")
+
+        # Layout
+        layout = QVBoxLayout()
+        layout.setAlignment(Qt.AlignCenter)
+
+        # IP Address Label
+        self.ip_label = QLabel()
+        self.ip_label.setFont(QFont('Arial', 30))
+        self.ip_label.setStyleSheet("color: yellow;")
+        layout.addWidget(self.ip_label)
+
+        # Time Label
+        self.time_label = QLabel()
+        self.time_label.setFont(QFont('Arial', 80))
+        self.time_label.setStyleSheet("color: white;")
+        layout.addWidget(self.time_label)
+
+        # Message Label
+        self.message_label = QLabel()
+        self.message_label.setFont(QFont('Arial', 50))
+        self.message_label.setStyleSheet("color: white;")
+        self.message_label.setWordWrap(True)  # Enable word wrapping
+        layout.addWidget(self.message_label)
+
+        self.setLayout(layout)
+
+        # Timer to update time every second
+        self.timer = QTimer(self)
+        self.timer.timeout.connect(self.update_time)
+        self.timer.start(1000)  # 1 second interval
+
+    def update_time(self):
+        current_time = datetime.now().strftime('%H:%M:%S')
+        self.time_label.setText(current_time)
+        self.ip_label.setText(f"Device IP: {self.device_ip}")
+
+        # Check if it's time to update the message
+        if datetime.now() >= self.next_prayer_time:
+            self.update_message()
+
+    def update_message(self):
+        self.current_message = random.choice(messages)
+        self.message_label.setText(self.current_message)
+        self.next_prayer_time = self.get_next_prayer_time()
+        threading.Thread(target=playsound, args=(sound_file_path,), daemon=True).start()
+
+    def get_next_prayer_time(self):
+        now = datetime.now()
+        for prayer_time in prayer_times:
+            prayer_datetime = datetime.strptime(prayer_time, '%H:%M').replace(
+                year=now.year, month=now.month, day=now.day)
+            if prayer_datetime > now:
+                return prayer_datetime
+        # If no future prayer time today, set to the first prayer time tomorrow
+        next_day = now.replace(day=now.day + 1, hour=0, minute=0, second=0, microsecond=0)
+        return datetime.strptime(prayer_times[0], '%H:%M').replace(
+            year=next_day.year, month=next_day.month, day=next_day.day)
+
+if __name__ == '__main__':
+    app = QApplication(sys.argv)
+    ex = PrayerReminder()
+    ex.show()
+    sys.exit(app.exec_())
