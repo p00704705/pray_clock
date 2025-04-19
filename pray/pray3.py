@@ -10,7 +10,7 @@ from playsound import playsound
 import threading
 import pygame
 from pydub import AudioSegment
-from pydub.playback import play
+from pydub.playback import  _play_with_simpleaudio
 import fcntl
 import struct
 import os
@@ -192,7 +192,7 @@ class PrayerReminder(QWidget):
         print(type(current_time))
         if current_time in prayer_times:
             sound = AudioSegment.from_mp3("/home/pi/pray/24ctu.mp3")
-            play(sound)
+            _play_with_simpleaudio(sound)
 
     def close_application(self):
         """Close the application when the button is clicked."""
