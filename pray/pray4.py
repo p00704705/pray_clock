@@ -2,7 +2,7 @@ import sys
 import time
 import random
 import socket
-from datetime import datetime
+from datetime import datetime, timedelta
 from PyQt5.QtWidgets import QApplication, QLabel, QVBoxLayout, QWidget, QPushButton
 from PyQt5.QtCore import QTimer, Qt
 from PyQt5.QtGui import QFont
